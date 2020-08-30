@@ -1,0 +1,153 @@
+diff --git a/node_modules/@react-aria/focus/dist/main.js b/node_modules/@react-aria/focus/dist/main.js
+index e890d00..ff0cadb 100644
+--- a/node_modules/@react-aria/focus/dist/main.js
++++ b/node_modules/@react-aria/focus/dist/main.js
+@@ -124,6 +124,29 @@ function FocusScope(props) {
+ 
+ exports.FocusScope = FocusScope;
+ 
++function useFocusScope(ref, props) {
++  let {
++    contain,
++    restoreFocus,
++    autoFocus
++  } = props;
++  let scopeRef = useRef([]);
++
++  useLayoutEffect(() => {
++    scopeRef.current = [ref.current];
++    $bdceb2956edbee43435a9382ef97283f$var$scopes.add(scopeRef);
++    return () => {
++      $bdceb2956edbee43435a9382ef97283f$var$scopes.delete(scopeRef);
++    };
++  }, []);
++
++  $bdceb2956edbee43435a9382ef97283f$var$useFocusContainment(scopeRef, contain);
++  $bdceb2956edbee43435a9382ef97283f$var$useRestoreFocus(scopeRef, restoreFocus, contain);
++  $bdceb2956edbee43435a9382ef97283f$var$useAutoFocus(scopeRef, autoFocus);
++}
++
++exports.useFocusScope = useFocusScope;
++
+ function useFocusManager() {
+   return useContext($bdceb2956edbee43435a9382ef97283f$var$FocusContext);
+ }
+@@ -345,11 +368,20 @@ function $bdceb2956edbee43435a9382ef97283f$var$useAutoFocus(scopeRef, autoFocus)
+   }, [scopeRef, autoFocus]);
+ }
+ 
++function getActiveElement() {
++  let node = document.activeElement;
++  if (node.shadowRoot) {
++    node = node.shadowRoot.activeElement;
++  }
++
++  return node;
++}
++
+ function $bdceb2956edbee43435a9382ef97283f$var$useRestoreFocus(scopeRef, restoreFocus, contain) {
+   // useLayoutEffect instead of useEffect so the active element is saved synchronously instead of asynchronously.
+   useLayoutEffect(() => {
+     let scope = scopeRef.current;
+-    let nodeToRestore = document.activeElement; // Handle the Tab key so that tabbing out of the scope goes to the next element
++    let nodeToRestore = getActiveElement(); // Handle the Tab key so that tabbing out of the scope goes to the next element
+     // after the node that had focus when the scope mounted. This is important when
+     // using portals for overlays, so that focus goes to the expected element when
+     // tabbing out of the overlay.
+@@ -359,7 +391,7 @@ function $bdceb2956edbee43435a9382ef97283f$var$useRestoreFocus(scopeRef, restore
+         return;
+       }
+ 
+-      let focusedElement = document.activeElement;
++      let focusedElement = getActiveElement();
+ 
+       if (!$bdceb2956edbee43435a9382ef97283f$var$isElementInScope(focusedElement, scope)) {
+         return;
+@@ -398,9 +430,9 @@ function $bdceb2956edbee43435a9382ef97283f$var$useRestoreFocus(scopeRef, restore
+         document.removeEventListener('keydown', onKeyDown, true);
+       }
+ 
+-      if (restoreFocus && nodeToRestore && $bdceb2956edbee43435a9382ef97283f$var$isElementInScope(document.activeElement, scope)) {
++      if (restoreFocus && nodeToRestore/* && $bdceb2956edbee43435a9382ef97283f$var$isElementInScope(getActiveElement(), scope)*/) {
+         requestAnimationFrame(() => {
+-          if (document.body.contains(nodeToRestore)) {
++          if (true/*document.body.contains(nodeToRestore)*/) {
+             $bdceb2956edbee43435a9382ef97283f$var$focusElement(nodeToRestore);
+           }
+         });
+diff --git a/node_modules/@react-aria/focus/dist/module.js b/node_modules/@react-aria/focus/dist/module.js
+index 0d1c815..0ad853c 100644
+--- a/node_modules/@react-aria/focus/dist/module.js
++++ b/node_modules/@react-aria/focus/dist/module.js
+@@ -84,6 +84,28 @@ export function FocusScope(props) {
+     ref: endRef
+   }));
+ }
++
++export function useFocusScope(ref, props) {
++  let {
++    contain,
++    restoreFocus,
++    autoFocus
++  } = props;
++  let scopeRef = useRef([]);
++
++  useLayoutEffect(() => {
++    scopeRef.current = [ref.current];
++    $c9e8f80f5bb1841844f54e4ad30b$var$scopes.add(scopeRef);
++    return () => {
++      $c9e8f80f5bb1841844f54e4ad30b$var$scopes.delete(scopeRef);
++    };
++  }, []);
++
++  $c9e8f80f5bb1841844f54e4ad30b$var$useFocusContainment(scopeRef, contain);
++  $c9e8f80f5bb1841844f54e4ad30b$var$useRestoreFocus(scopeRef, restoreFocus, contain);
++  $c9e8f80f5bb1841844f54e4ad30b$var$useAutoFocus(scopeRef, autoFocus);
++}
++
+ /**
+  * Returns a FocusManager interface for the parent FocusScope.
+  * A FocusManager can be used to programmatically move focus within
+@@ -309,11 +331,20 @@ function $c9e8f80f5bb1841844f54e4ad30b$var$useAutoFocus(scopeRef, autoFocus) {
+   }, [scopeRef, autoFocus]);
+ }
+ 
++function getActiveElement() {
++  let node = document.activeElement;
++  if (node.shadowRoot) {
++    node = node.shadowRoot.activeElement;
++  }
++
++  return node;
++}
++
+ function $c9e8f80f5bb1841844f54e4ad30b$var$useRestoreFocus(scopeRef, restoreFocus, contain) {
+   // useLayoutEffect instead of useEffect so the active element is saved synchronously instead of asynchronously.
+   useLayoutEffect(() => {
+     let scope = scopeRef.current;
+-    let nodeToRestore = document.activeElement; // Handle the Tab key so that tabbing out of the scope goes to the next element
++    let nodeToRestore = getActiveElement(); // Handle the Tab key so that tabbing out of the scope goes to the next element
+     // after the node that had focus when the scope mounted. This is important when
+     // using portals for overlays, so that focus goes to the expected element when
+     // tabbing out of the overlay.
+@@ -323,7 +354,7 @@ function $c9e8f80f5bb1841844f54e4ad30b$var$useRestoreFocus(scopeRef, restoreFocu
+         return;
+       }
+ 
+-      let focusedElement = document.activeElement;
++      let focusedElement = getActiveElement();
+ 
+       if (!$c9e8f80f5bb1841844f54e4ad30b$var$isElementInScope(focusedElement, scope)) {
+         return;
+@@ -362,9 +393,9 @@ function $c9e8f80f5bb1841844f54e4ad30b$var$useRestoreFocus(scopeRef, restoreFocu
+         document.removeEventListener('keydown', onKeyDown, true);
+       }
+ 
+-      if (restoreFocus && nodeToRestore && $c9e8f80f5bb1841844f54e4ad30b$var$isElementInScope(document.activeElement, scope)) {
++      if (restoreFocus && nodeToRestore/* && $c9e8f80f5bb1841844f54e4ad30b$var$isElementInScope(document.activeElement, scope)*/) {
+         requestAnimationFrame(() => {
+-          if (document.body.contains(nodeToRestore)) {
++          if (true/*document.body.contains(nodeToRestore)*/) {
+             $c9e8f80f5bb1841844f54e4ad30b$var$focusElement(nodeToRestore);
+           }
+         });

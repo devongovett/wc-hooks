@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>wc-hooks</title>
+    <meta charset="UTF-8" />
+    <style>
+      html, body {
+        height: 100%;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <test-button id="button">Button</test-button>
+    <test-select id="select">
+      <span slot="label">Favorite color</span>
+    </test-select>
+    <script>
+      button.addEventListener("press", (e) => {
+        console.log(e.detail);
+        select.value = "blue";
+      });
+
+      // Can't pass objects as HTML attributes, so set the select items using a property.
+      select.items = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'].map(v => ({id: v.toLowerCase(), name: v}));
+      select.addEventListener('change', (e) => {
+        console.log(e.detail);
+      });
+    </script>
+    <script src="src/button.js"></script>
+    <script src="src/select.js"></script>
+  </body>
+</html>

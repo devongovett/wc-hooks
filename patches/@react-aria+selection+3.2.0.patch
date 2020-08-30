@@ -1,0 +1,30 @@
+diff --git a/node_modules/@react-aria/selection/dist/main.js b/node_modules/@react-aria/selection/dist/main.js
+index d9d1011..ddfa2e1 100644
+--- a/node_modules/@react-aria/selection/dist/main.js
++++ b/node_modules/@react-aria/selection/dist/main.js
+@@ -427,8 +427,8 @@ function useSelectableCollection(options) {
+     // override those of the children. For example, ArrowDown in a table should always go
+     // to the cell below, and not open a menu.
+     onKeyDownCapture: onKeyDown,
+-    onFocus,
+-    onBlur,
++    onFocusIn: onFocus,
++    onFocusOut: onBlur,
+ 
+     onMouseDown(e) {
+       // Prevent focus going to the collection when clicking on the scrollbar.
+diff --git a/node_modules/@react-aria/selection/dist/module.js b/node_modules/@react-aria/selection/dist/module.js
+index efa4132..c84bbfb 100644
+--- a/node_modules/@react-aria/selection/dist/module.js
++++ b/node_modules/@react-aria/selection/dist/module.js
+@@ -406,8 +406,8 @@ export function useSelectableCollection(options) {
+     // override those of the children. For example, ArrowDown in a table should always go
+     // to the cell below, and not open a menu.
+     onKeyDownCapture: onKeyDown,
+-    onFocus,
+-    onBlur,
++    onFocusIn: onFocus,
++    onFocusOut: onBlur,
+ 
+     onMouseDown(e) {
+       // Prevent focus going to the collection when clicking on the scrollbar.

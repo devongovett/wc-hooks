@@ -1,0 +1,53 @@
+diff --git a/node_modules/@react-aria/select/dist/main.js b/node_modules/@react-aria/select/dist/main.js
+index dcf0778..1d1be03 100644
+--- a/node_modules/@react-aria/select/dist/main.js
++++ b/node_modules/@react-aria/select/dist/main.js
+@@ -127,7 +127,7 @@ exports.useSelect = useSelect;
+  * can be used in combination with `useSelect` to support browser form autofill, mobile form
+  * navigation, and native HTML form submission.
+  */
+-function $e0114c5d15abeb44ad2f0ff0d15a1cb4$var$useHiddenSelect(props, state, triggerRef) {
++function useHiddenSelect(props, state, triggerRef) {
+   let {
+     name,
+     isDisabled
+@@ -177,6 +177,8 @@ function $e0114c5d15abeb44ad2f0ff0d15a1cb4$var$useHiddenSelect(props, state, tri
+     }
+   };
+ }
++
++exports.useHiddenSelect = useHiddenSelect;
+ /**
+  * Renders a hidden native `<select>` element, which can be used to support browser
+  * form autofill, mobile form navigation, and native form submission.
+@@ -195,7 +197,7 @@ function HiddenSelect(props) {
+     containerProps,
+     inputProps,
+     selectProps
+-  } = $e0114c5d15abeb44ad2f0ff0d15a1cb4$var$useHiddenSelect(props, state, triggerRef); // If used in a <form>, use a hidden input so the value can be submitted to a server.
++  } = useHiddenSelect(props, state, triggerRef); // If used in a <form>, use a hidden input so the value can be submitted to a server.
+   // If the collection isn't too big, use a hidden <select> element for this so that browser
+   // autofill will work. Otherwise, use an <input type="hidden">.
+ 
+diff --git a/node_modules/@react-aria/select/dist/module.js b/node_modules/@react-aria/select/dist/module.js
+index 9c22b58..095ea3e 100644
+--- a/node_modules/@react-aria/select/dist/module.js
++++ b/node_modules/@react-aria/select/dist/module.js
+@@ -89,7 +89,7 @@ export function useSelect(props, state, ref) {
+  * can be used in combination with `useSelect` to support browser form autofill, mobile form
+  * navigation, and native HTML form submission.
+  */
+-function $b4812aafb06725b684f6ed02827aa8f$var$useHiddenSelect(props, state, triggerRef) {
++export function useHiddenSelect(props, state, triggerRef) {
+   let {
+     name,
+     isDisabled
+@@ -157,7 +157,7 @@ export function HiddenSelect(props) {
+     containerProps,
+     inputProps,
+     selectProps
+-  } = $b4812aafb06725b684f6ed02827aa8f$var$useHiddenSelect(props, state, triggerRef); // If used in a <form>, use a hidden input so the value can be submitted to a server.
++  } = useHiddenSelect(props, state, triggerRef); // If used in a <form>, use a hidden input so the value can be submitted to a server.
+   // If the collection isn't too big, use a hidden <select> element for this so that browser
+   // autofill will work. Otherwise, use an <input type="hidden">.
+ 
