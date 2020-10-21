@@ -259,5 +259,5 @@ above that it is a bit too strong too soon. Additional standards will be needed
 to address these limitations, and while shadow DOM is currently nice for style
 encapsulation, it currently causes more issues than it solves. Good enough style
 encapsulation is possible without shadow DOM using hashed class names, for example,
-so I suggest avoiding shadow DOM for the time being and sticking with custom elements
-in the light DOM until these issues are addressed.
+so I suggest avoiding shadow DOM for components where it is problematic for the time
+being and sticking with custom elements in the light DOM until these issues are addressed.
