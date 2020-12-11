@@ -1,6 +1,7 @@
 import {useOption} from '@react-aria/listbox';
 import {attrs} from './attrs';
-import {createHooks, useRef} from './hooks';
+import {useRef} from './hooks';
+import {Controller, prop} from './controller';
 
 const template = document.createElement('template');
 template.innerHTML = `
@@ -11,14 +12,17 @@ template.innerHTML = `
   list-style-type: none;
   cursor: default;
   user-select: none;
+  display: flex;
+  align-items: center;
 }
 
 .contents {
   display: flex;
   align-items: center;
+  flex: 1;
 }
 
-.option:focus {
+:host(:focus) {
   outline: none;
 }
 
@@ -32,12 +36,7 @@ template.innerHTML = `
 }
 
 .checkmark {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
+  display: none;
   padding-right: 16px;
   color: #718096;
 }
@@ -51,64 +50,36 @@ template.innerHTML = `
 }
 </style>
 
-<li class="option">
-  <div class="contents"></div>
-  <span
-    class="checkmark"
-    aria-hidden="true">
-    <svg class="h-5 w-5 fill-current" viewBox="0 0 20 20">
-      <path
-        fill-rule="evenodd"
-        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-        clip-rule="evenodd"
-      />
-    </svg>
-  </span>
-</li>
+<div class="option">
+  <div class="contents">
+    <slot></slot>
+  </div>
+  <svg class="checkmark" aria-hidden="true" width="20" height="20" viewBox="0 0 20 20">
+    <path
+      fill="currentColor"
+      fill-rule="evenodd"
+      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+      clip-rule="evenodd"
+    />
+  </svg>
+</div>
 `;
 
-class TestOption extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-    this.hooks = createHooks(() => this.update());
-  }
-
-  connectedCallback() {
-    this.shadowRoot.appendChild(template.content.cloneNode(true));
-    this.option = this.shadowRoot.querySelector('.option');
-    this.contents = this.shadowRoot.querySelector('.contents');
-    this.optionProps = attrs(this.option);
-    this.hooks.run();
-  }
-
-  get state() {
-    return this._state;
-  }
-
-  set state(state) {
-    this._state = state;
-    this.hooks.run();
-  }
-
-  get item() {
-    return this._item;
-  }
-
-  set item(item) {
-    this._item = item;
-    this.hooks.run();
-  }
-
+class OptionController extends Controller {
+  @prop state;
+  @prop item;
+  
+  optionProps;
+  
   update() {
-    if (!this.state || !this.item || !this.option) {
+    let state = this.state;
+    if (!state || !this.item) {
       return;
     }
-
-    let isDisabled = this.state.disabledKeys.has(this.item.key);
-    let isSelected = this.state.selectionManager.isSelected(this.item.key);
-    let isFocused = this.state.selectionManager.focusedKey === this.item.key;
-    let ref = useRef(this.option);
+        
+    let isDisabled = state.disabledKeys.has(this.item.key);
+    let isSelected = state.selectionManager.isSelected(this.item.key);
+    let ref = useRef(this.props.element);
     let {optionProps} = useOption(
       {
         key: this.item.key,
@@ -117,11 +88,57 @@ class TestOption extends HTMLElement {
         shouldSelectOnPressUp: true,
         shouldFocusOnHover: true
       },
-      this.state,
+      state,
       ref
     );
+        
+    this.optionProps = optionProps;
+  }
+}
 
-    this.optionProps.update(optionProps);
+class TestOption extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
+  connectedCallback() {
+    this.shadowRoot.appendChild(template.content.cloneNode(true));
+    this.option = this.shadowRoot.querySelector('.option');
+    this.contents = this.shadowRoot.querySelector('.contents');
+    this.optionProps = attrs(this);
+    
+    this.controller = new OptionController({
+      element: this,
+      update: () => this.update()
+    });
+  }
+
+  get state() {
+    return this.controller.state;
+  }
+
+  set state(state) {
+    this.controller.state = state;
+  }
+
+  get item() {
+    return this.controller.item;
+  }
+
+  set item(item) {
+    this.controller.item = item;
+  }
+
+  update() {
+    if (!this.state || !this.item) {
+      return;
+    }
+    
+    let isSelected = this.state.selectionManager.isSelected(this.item.key);
+    let isFocused = this.state.selectionManager.focusedKey === this.item.key;
+
+    this.optionProps.update(this.controller.optionProps);
 
     if (isSelected) {
       this.option.classList.add('selected');
@@ -135,12 +152,11 @@ class TestOption extends HTMLElement {
       this.option.classList.remove('focus');
     }
 
-    this.contents.innerHTML = this.item.rendered;
-    this.hooks.runEffects();
+    this.contents.textContent = this.item.rendered;
   }
 
   disconnectedCallback() {
-    this.hooks.unmount();
+    this.controller.unmount();
     if (this.optionProps) {
       this.optionProps.destroy();
     }

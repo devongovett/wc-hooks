@@ -18,22 +18,25 @@
   </head>
   <body>
     <test-button id="button">Button</test-button>
-    <test-select id="select">
-      <span slot="label">Favorite color</span>
+    <test-select id="select" label="Favorite color">
+      <option value="red">Red</option>
+      <option value="orange">Orange</option>
+      <option value="yellow">Yellow</option>
+      <option value="green">Green</option>
+      <option value="blue">Blue</option>
+      <option value="purple">Purple</option>
     </test-select>
+    <script src="src/button.js"></script>
+    <script src="src/select.js"></script>
     <script>
       button.addEventListener("press", (e) => {
         console.log(e.detail);
         select.value = "blue";
       });
 
-      // Can't pass objects as HTML attributes, so set the select items using a property.
-      select.items = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'].map(v => ({id: v.toLowerCase(), name: v}));
       select.addEventListener('change', (e) => {
         console.log(e.detail);
       });
     </script>
-    <script src="src/button.js"></script>
-    <script src="src/select.js"></script>
   </body>
 </html>

@@ -5,7 +5,10 @@ import {useButton} from '@react-aria/button';
 import {useFocusRing} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
 import { attrs } from './attrs';
-import {createHooks, useRef} from './hooks';
+import {useRef} from './hooks';
+import {Controller, prop, state, method} from './controller';
+import {dispatcher, attr} from './utils';
+import './overlay';
 import './listbox';
 
 const template = document.createElement('template');
@@ -108,111 +111,142 @@ template.innerHTML = `
 </div>
 `;
 
-function dispatcher(el, type) {
-  return (e) => {
-    const changeEvent = new CustomEvent(type, {
-      bubbles: true,
-      cancelable: false,
-      detail: e
+class SelectController extends Controller {
+  constructor(props) {
+    super({
+      ...props,
+      items: props.items || [],
+      children: (v) => ({type: Item, key: v.value, props: {children: v.textContent}}),
+      defaultSelectedKey: props.selectedKey,
+      selectedKey: undefined
     });
-    el.dispatchEvent(changeEvent);
-  };
+  }
+  
+  @prop items;
+  
+  @state('setSelectedKey') selectedKey;
+  @state collection;
+  @state selectedItem;
+  @state selectionManager;
+  @state isOpen;
+  @state disabledKeys;
+  @state focusStrategy;
+  
+  @method open;
+  @method toggle;
+  @method close;
+  
+  labelProps;
+  buttonProps;
+  valueProps;
+  menuProps;
+  hiddenSelectProps;
+  inputProps;
+  selectProps;
+  isFocusVisible;
+  
+  update() {
+    this.state = useSelectState(this.props);
+    let ref = useRef(this.props.element);
+    let {labelProps, triggerProps, valueProps, menuProps} = useSelect(
+      this.props,
+      this.state,
+      ref
+    );
+    
+    let {buttonProps} = useButton(triggerProps, ref);
+    buttonProps.onKeyDownCapture = triggerProps.onKeyDownCapture; // TODO: fix this
+    
+    let {focusProps, isFocusVisible} = useFocusRing();
+    
+    this.labelProps = labelProps;
+    this.buttonProps = mergeProps(buttonProps, focusProps);
+    this.valueProps = valueProps;
+    this.menuProps = menuProps;
+    this.isFocusVisible = isFocusVisible;
+    
+    let {containerProps, inputProps, selectProps} = useHiddenSelect(this.props, this.state, ref);
+    this.hiddenSelectProps = containerProps;
+    this.inputProps = inputProps;
+    this.selectProps = selectProps;
+  }
 }
 
 class TestSelect extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this.hooks = createHooks(() => this.update());
-    this._items = [];
   }
 
   connectedCallback() {
     this.shadowRoot.appendChild(template.content.cloneNode(true));
     this.wrapper = this.shadowRoot.querySelector('.wrapper');
-    this.label = this.shadowRoot.querySelector('.label');
+    this.labelNode = this.shadowRoot.querySelector('.label');
     this.hiddenSelect = this.shadowRoot.querySelector('.hiddenSelect');
     this.hiddenSelectLabel = this.shadowRoot.querySelector('#hiddenSelectLabel');
     this.input = this.shadowRoot.querySelector('.input');
     this.select = this.shadowRoot.querySelector('.select');
     this.button = this.shadowRoot.querySelector('.button');
     this.valueNode = this.shadowRoot.querySelector('.value');
-    this.labelProps = attrs(this.label);
+    this.labelProps = attrs(this.labelNode);
     this.hiddenSelectProps = attrs(this.hiddenSelect);
     this.inputProps = attrs(this.input);
     this.selectProps = attrs(this.select);
     this.buttonProps = attrs(this.button);
     this.valueProps = attrs(this.valueNode);
-    this.hooks.run();
+    
+    this.controller = new SelectController({
+      element: this.button,
+      label: this.label,
+      selectedKey: this.value,
+      onSelectionChange: dispatcher(this, 'change'),
+      update: () => this.update()
+    });
+    
+    this.observer = new MutationObserver(() => this.updateItems());
+    this.observer.observe(this, {childList: true});
+    this.updateItems();
   }
-
-  get value() {
-    return this.getAttribute('value');
-  }
-
-  set value(value) {
-    this.setAttribute('value', value);
-  }
+  
+  @attr value;
+  @attr label;
 
   get items() {
-    return this._items;
+    return this.controller.items;
   }
 
   set items(items) {
-    this._items = items;
-    this.hooks.run();
+    this.controller.items = items;
+  }
+  
+  updateItems() {
+    this.controller.items = this.querySelectorAll('option');
   }
 
   static get observedAttributes() {
-    return ['value'];
+    return ['value', 'label'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-    this.hooks.run();
+    if (!this.controller) return;
+    this.controller.selectedKey = this.value;
+    this.controller.label = this.label;
   }
 
   update() {
-    let dispatchChangeEvent = dispatcher(this, 'change');
-    let props = {
-      label: 'test',
-      items: this.items,
-      children: (v) => ({type: Item, key: v.id, props: {children: v.name}}),
-      selectedKey: this.value,
-      onSelectionChange: (key) => {
-        // Behave like a DOM node, not a controlled React component. Update state and fire change event.
-        this.value = key;
-        dispatchChangeEvent(key);
-      }
-    };
+    this.labelProps.update(this.controller.labelProps);
+    this.buttonProps.update(this.controller.buttonProps);
+    this.valueProps.update(this.controller.valueProps);
+    this.hiddenSelectProps.update(this.controller.hiddenSelectProps);
+    this.inputProps.update(this.controller.inputProps);
+    this.selectProps.update(this.controller.selectProps);
 
-    let state = useSelectState(props);
-
-    let ref = useRef(this.button);
-    let {labelProps, triggerProps, valueProps, menuProps} = useSelect(
-      props,
-      state,
-      ref
-    );
-
-    let {buttonProps} = useButton(triggerProps, ref);
-    buttonProps.onKeyDownCapture = triggerProps.onKeyDownCapture; // TODO: fix this
-    let {focusProps, isFocusVisible} = useFocusRing();
-
-    let {containerProps, inputProps, selectProps} = useHiddenSelect(props, state, ref);
-
-    this.labelProps.update(labelProps);
-    this.buttonProps.update(mergeProps(focusProps, buttonProps));
-    this.valueProps.update(valueProps);
-    this.hiddenSelectProps.update(containerProps);
-    this.inputProps.update(inputProps);
-    this.selectProps.update(selectProps);
-
-    // Copy text content from label slot into hidden select label.
-    this.hiddenSelectLabel.textContent = this.label.firstElementChild.assignedElements().map(e => e.textContent).join('');
+    this.labelNode.textContent = this.label;
+    this.hiddenSelectLabel.textContent = this.label;
 
     // Add option elements to hidden select.
     let options = this.select.querySelectorAll('option');
-    [...state.collection].forEach((item, i) => {
+    [...this.controller.collection].forEach((item, i) => {
       let option = options[i];
       if (!option) {
         option = document.createElement('option');
@@ -224,15 +258,15 @@ class TestSelect extends HTMLElement {
     });
 
     // Update contents of button based on selected item. If none, show placeholder.
-    if (state.selectedItem) {
-      this.valueNode.textContent = state.selectedItem.rendered;
+    if (this.controller.selectedItem) {
+      this.valueNode.textContent = this.controller.selectedItem.rendered;
       this.valueNode.classList.remove('placeholder');
     } else {
       this.valueNode.textContent = 'Select an option';
       this.valueNode.classList.add('placeholder');
     }
 
-    if (isFocusVisible) {
+    if (this.controller.isFocusVisible) {
       this.button.classList.add('focus');
     } else {
       this.button.classList.remove('focus');
@@ -240,24 +274,33 @@ class TestSelect extends HTMLElement {
 
     // If the select is open, create the listbox element if needed, and update its content.
     // Otherwise, if the select is now not open, remove the listbox.
-    if (state.isOpen) {
+    if (this.controller.isOpen) {
       if (!this.listbox) {
         this.listbox = document.createElement('test-listbox');
-        this.wrapper.appendChild(this.listbox);
+        this.listboxProps = attrs(this.listbox);
+        this.overlay = document.createElement('test-overlay');
+        this.overlay.addEventListener('close', () => {
+          this.controller.close();
+        });
+        
+        this.overlay.appendChild(this.listbox);
+        this.wrapper.appendChild(this.overlay);
       }
-
-      this.listbox.domProps = menuProps;
-      this.listbox.state = state;
+      
+      this.listboxProps.update(this.controller.menuProps);
+      this.listbox.state = this.controller;
     } else if (this.listbox) {
+      this.overlay.remove();
+      this.listboxProps.destroy();
       this.listbox.remove();
+      this.overlay = null;
       this.listbox = null;
+      this.listboxProps = null;
     }
-
-    this.hooks.runEffects();
   }
 
   disconnectedCallback() {
-    this.hooks.unmount();
+    this.controller.unmount();
     if (this.listboxProps) {
       this.listboxProps.destroy();
     }

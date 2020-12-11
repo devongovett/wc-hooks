@@ -2,7 +2,9 @@ import {useButton} from '@react-aria/button';
 import {useFocusRing} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
 import { attrs } from './attrs';
-import {createHooks} from './hooks';
+import {useRef} from './hooks';
+import {Controller, prop} from './controller';
+import {attr, dispatcher} from './utils';
 
 const template = document.createElement('template');
 template.innerHTML = `
@@ -34,82 +36,74 @@ button.focus {
 </style>
 `;
 
-function dispatcher(el, type) {
-  return (e) => {
-    const changeEvent = new CustomEvent(type, {
-      bubbles: true,
-      cancelable: false,
-      detail: e
-    });
-    el.dispatchEvent(changeEvent);
-  };
+export class ButtonController extends Controller {
+  @prop isDisabled;
+  @prop onPress;
+  
+  buttonProps;
+  isPressed;
+  isFocusVisible;
+  
+  update() {
+    let ref = useRef(this.props.element);
+    let {buttonProps, isPressed} = useButton(this.props, ref);
+    let {focusProps, isFocusVisible} = useFocusRing();
+    
+    this.buttonProps = mergeProps(buttonProps, focusProps);
+    this.isPressed = isPressed;
+    this.isFocusVisible = isFocusVisible;
+  }
 }
 
 class TestButton extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this.hooks = createHooks(() => this.update());
   }
 
   connectedCallback() {
     this.shadowRoot.appendChild(template.content.cloneNode(true));
     this.button = this.shadowRoot.querySelector('button');
     this.attrs = attrs(this.button);
-    this.hooks.run();
+    
+    this.controller = new ButtonController({
+      element: this.button,
+      isDisabled: this.isDisabled || undefined,
+      onPress: dispatcher(this, 'press'),
+      update: () => this.update()
+    });
+    
+    this.update();
   }
-
-  get isDisabled() {
-    return this.hasAttribute('disabled');
-  }
-
-  set isDisabled(isDisabled) {
-    if (isDisabled) {
-      this.setAttribute('disabled', '');
-    } else {
-      this.removeAttribute('disabled');
-    }
-  }
-
+  
+  @attr disabled;
+  
   static get observedAttributes() {
     return ['disabled'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-    this.hooks.run();
+    this.controller.isDisabled = this.disabled;
   }
-
+  
   update() {
-    let { buttonProps, isPressed } = useButton({
-      isDisabled: this.isDisabled || undefined,
-      onPress: dispatcher(this, 'press'),
-      onPressStart: dispatcher(this, 'pressstart'),
-      onPressEnd: dispatcher(this, 'pressend')
-    });
+    this.attrs.update(this.controller.buttonProps);
 
-    let { focusProps, isFocusVisible } = useFocusRing();
-
-    buttonProps = mergeProps(buttonProps, focusProps);
-
-    this.attrs.update(buttonProps);
-
-    if (isPressed) {
+    if (this.controller.isPressed) {
       this.button.classList.add('pressed');
     } else {
       this.button.classList.remove('pressed');
     }
-
-    if (isFocusVisible) {
+    
+    if (this.controller.isFocusVisible) {
       this.button.classList.add('focus');
     } else {
       this.button.classList.remove('focus');
     }
-
-    this.hooks.runEffects();
   }
 
   disconnectedCallback() {
-    this.hooks.unmount();
+    this.controller.unmount();
     this.attrs.destroy();
   }
 }
